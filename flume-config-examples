@@ -1,0 +1,79 @@
+flume-agent.sources = spool
+flume-agent.channels = file_channel
+flume-agent.sinks = sink_to_hdfs
+
+# Define / Configure source
+flume-agent.sources.spool.type = spooldir
+flume-agent.sources.spool.channels = file_channel
+flume-agent.sources.spool.spoolDir = /var/stream/flume/spooldir
+flume-agent.sources.spool.batchsize = 1
+
+# HDFS sinks
+flume-agent.sinks.sink_to_hdfs.type = hdfs
+flume-agent.sinks.sink_to_hdfs.hdfs.fileType = DataStream
+flume-agent.sinks.sink_to_hdfs.hdfs.path = /stream/flume/events
+flume-agent.sinks.sink_to_hdfs.hdfs.filePrefix = spool
+flume-agent.sinks.sink_to_hdfs.hdfs.fileSuffix = .dat
+flume-agent.sinks.sink_to_hdfs.hdfs.batchSize = 1
+
+# Use a channel which buffers events in memory
+flume-agent.channels.file_channel.type = file
+flume-agent.channels.file_channel.checkpointDir = /var/stream/flume/checkpoint
+flume-agent.channels.file_channel.dataDirs = /var/stream/flume/data
+
+# Bind the source and sink to the channel
+flume-agent.sources.spool.channels = file_channel
+flume-agent.sinks.sink_to_hdfs.channel = file_channel
+
+
+# HIVE sinks
+flume-agent.sinks = hive_sink
+flume-agent.sinks.hive_sink.type = hive
+flume-agent.sinks.hive_sink.channel = file_channel
+flume-agent.sinks.hive_sink.hive.metastore = thrift://titan.saturn:9083
+flume-agent.sinks.hive_sink.hive.txnsPerBatchAsk = 2
+flume-agent.sinks.hive_sink.batchSize = 1
+flume-agent.sinks.hive_sink.hive.database = default
+flume-agent.sinks.hive_sink.hive.table = timeseries
+flume-agent.sinks.hive_sink.serializer = DELIMITED
+a1.sinks.k1.serializer.delimiter = ,
+a1.sinks.k1.serializer.serdeSeparator = '\n'
+flume-agent.sinks.hive_sink.serializer.fieldnames =id,value1
+
+create table timeseries (ID STRING, stamp STRING, value1 STRING, value2 STRING )  CLUSTERED BY(ID) INTO 2 BUCKETS stored as orc;
+
+# HIVE sinks
+flume-agent.sinks = hive_sink
+flume-agent.sinks.hive_sink.type = hive
+flume-agent.sinks.hive_sink.channel = file_channel
+flume-agent.sinks.hive_sink.hive.metastore = thrift://titan.saturn:9083
+flume-agent.sinks.hive_sink.hive.txnsPerBatchAsk = 2
+flume-agent.sinks.hive_sink.batchSize = 1
+flume-agent.sinks.hive_sink.hive.database = default
+flume-agent.sinks.hive_sink.hive.table = generated
+flume-agent.sinks.hive_sink.serializer = DELIMITED
+a1.sinks.k1.serializer.delimiter = ,
+a1.sinks.k1.serializer.serdeSeparator = '\n'
+flume-agent.sinks.hive_sink.serializer.fieldnames =row_id,universe_0_0,universe_0_1,universe_1_0,universe_1_1,cluster_membership 
+
+create table timeseries (row_id STRING, universe_0_0 STRING, universe_0_1 STRING, universe_1_0 STRING, universe_1_1 STRING, cluster_membership STRING )  CLUSTERED BY(cluster_membership) INTO 2 BUCKETS stored as orc;
+
+
+
+# HDFS sinks
+flume-agent.sinks = hive_sink
+flume-agent.sinks.hive_sink.type = hive
+flume-agent.sinks.hive_sink.channel = file_channel
+flume-agent.sinks.hive_sink.hive.metastore = thrift://titan.saturn:9083
+flume-agent.sinks.hive_sink.hive.txnsPerBatchAsk = 2
+flume-agent.sinks.hive_sink.batchSize = 1
+flume-agent.sinks.hive_sink.hive.database = default
+flume-agent.sinks.hive_sink.hive.table = timeseries
+flume-agent.sinks.hive_sink.serializer = DELIMITED
+a1.sinks.k1.serializer.delimiter = ,
+a1.sinks.k1.serializer.serdeSeparator = '\n'
+flume-agent.sinks.hive_sink.serializer.fieldnames =id,value1
+
+
+
+---
