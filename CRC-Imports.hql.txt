@@ -1,0 +1,256 @@
+val df = sqlContext.load("com.databricks.spark.csv", Map("path" -> "../wells/ODS_DOWNTIME_DETAILS.txt","header"->"true"))
+df.printSchema()
+df.count
+
+df.registerTempTable("downtime")
+val smDF = sqlContext.sql("select API_NO14,LOST_GAS_VOL from downtime limit 10" )
+smDF.registerTempTable("sm_downtime")
+
+smDF.show()
+
+import org.apache.spark.sql._
+
+val result = sqlContext.sql("SELECT API_NO14, LOST_GAS_VOL from sm_downtime").rdd.map {
+  case Row(api: String, gas: String) =>
+   api -> gas
+}
+
+
+DROP TABLE IF EXISTS ods_downtime_details_prep;
+
+CREATE TABLE ods_downtime_details_prep(
+  api_no14         bigint ,
+  downtime_date string , 
+  record_num     bigint ,
+  downtime_cd     string ,
+  hours_down     bigint ,
+  downtime_comments string ,
+  downtime_start_date string ,
+  lost_oil_vol     bigint ,
+  lost_gas_vol     double ,
+  lost_water_vol bigint ,
+  rig_on_loc     bigint ,
+  prod_op         bigint ,
+  reactive         bigint ,
+  waiting_on_host bigint ,
+  source         string
+) stored as orc tblproperties ("orc.compress"="NONE");
+
+LOAD DATA INPATH '/user/hdfs/ODS_DOWNTIME_DETAILS.csv' INTO TABLE ods_downtime_details_prep;
+
+DROP TABLE IF EXISTS ods_downtime_details;
+
+CREATE TABLE ods_downtime_details(
+  api_no14         bigint ,
+  downtime_date timestamp , 
+  record_num     bigint ,
+  downtime_cd     string ,
+  hours_down     bigint ,
+  downtime_comments string ,
+  downtime_start_date timestamp ,
+  lost_oil_vol     bigint ,
+  lost_gas_vol     double ,
+  lost_water_vol bigint ,
+  rig_on_loc     bigint ,
+  prod_op         bigint ,
+  reactive         bigint ,
+  waiting_on_host bigint ,
+  source         string
+) stored as orc tblproperties ("orc.compress"="NONE");
+
+
+INSERT OVERWRITE TABLE ods_downtime_details
+SELECT 
+  api_no14,  
+  from_unixtime(unix_timestamp(concat(downtime_date,':00'), 'MM/dd/yy hh:mm:ss')),
+  record_num,  
+  downtime_cd,
+  hours_down,
+  downtime_comments,
+  from_unixtime(unix_timestamp(concat(downtime_start_date,':00'), 'MM/dd/yy hh:mm:ss')),
+  lost_oil_vol,
+  lost_gas_vol,
+  lost_water_vol,
+  rig_on_loc,
+  prod_op,
+  reactive,
+  waiting_on_host,
+  source
+ 
+
+FROM ods_downtime_details_prep;
+
+DROP TABLE IF EXISTS ods_downtime_details_prep;
+
+
+
+DROP TABLE IF EXISTS ods_well_comp_temp;
+
+CREATE TABLE ods_well_comp_temp(
+
+reg_name STRING,
+at_name STRING,
+subat_name STRING,
+orglev4_name STRING,
+orglev5_name STRING,
+api_no14 STRING,
+completion_id STRING,
+legacy_well_seq_no STRING,
+legacy_zone_seq_no STRING,
+well_id STRING,
+wellbore_id STRING,
+wellbore_name STRING,
+wellcomp_name STRING,
+well_legal_name STRING,
+curr_comp_type STRING,
+curr_comp_status STRING,
+status_eff_date STRING,
+country_cd STRING,
+state_no STRING,
+state_name STRING,
+county_no STRING,
+county_name STRING,
+oper_no STRING,
+oper_name STRING,
+field_no STRING,
+field_name STRING,
+reservoir_cd STRING,
+org_seqno STRING,
+cost_center STRING,
+legacy_zone_id STRING,
+unit_no STRING,
+unit_tract_cd STRING,
+bottom_hole_tmd STRING,
+top_interval_tvd STRING,
+btm_interval_tvd STRING,
+top_interval_tmd STRING,
+btm_interval_tmd STRING,
+type_interval STRING,
+completion_date STRING,
+connection_date STRING,
+first_prod_date STRING,
+orig_wellcomp_name STRING,
+comp_regulatory_name STRING,
+property_name STRING,
+curr_method_prod STRING,
+legacy_zone_seqno_char STRING,
+automation_name STRING,
+automation_suffix STRING,
+battery_name STRING,
+surf_latitude STRING,
+surf_longitude STRING,
+comp_sk STRING,
+interest_type STRING,
+parentpid STRING,
+controller_name STRING,
+controller_subtype STRING,
+topx STRING,
+topy STRING,
+btm_bore_coord_x STRING,
+btm_bore_coord_y STRING,
+wellbore_kickoff_date STRING,
+well_spud_date STRING
+
+
+  )row format delimited fields terminated by "," stored as textfile TBLPROPERTIES("skip.header.line.count"="1");
+
+LOAD DATA INPATH '/user/hdfs/ODS_WELL_COMP_NH.csv' INTO TABLE ods_well_comp_temp;
+
+
+
+DROP TABLE IF EXISTS ods_well_test_prep;
+
+CREATE TABLE ods_well_test_prep(
+  
+api_no14 STRING,
+well_test_date STRING,
+oil_rate STRING,
+gas_rate STRING,
+water_rate STRING,
+gas_lift_rate STRING,
+gas_oil_ratio STRING,
+tubing_press STRING,
+casing_press STRING,
+line_press STRING,
+wellhead_temp STRING,
+allocatable STRING,
+water_cut STRING
+
+  )row format delimited fields terminated by "," stored as textfile TBLPROPERTIES("skip.header.line.count"="1");
+
+LOAD DATA INPATH '/user/hdfs/ODS_OXY_WELL_TEST_NH.csv' INTO TABLE ods_well_test_prep;
+
+
+
+DROP TABLE IF EXISTS  ods_wells_prep;
+
+CREATE TABLE  ods_wells_prep(
+  
+api_no10 STRING,
+well_id STRING,
+legacy_well_seq_no STRING,
+oper_no STRING,
+pf_no STRING,
+org_seqno STRING,
+drilling_seq_no STRING,
+country_cd STRING,
+state_no STRING,
+county_no STRING,
+field_no STRING,
+section STRING,
+township STRING,
+township_direction STRING,
+range_no STRING,
+range_direction STRING,
+well_common_name STRING,
+well_legal_name STRING,
+primary_well_loc STRING,
+ground_elevation STRING,
+def_elevation STRING,
+def_elevation_ref STRING,
+surf_coord_x STRING,
+surf_coord_y STRING,
+surf_latitude STRING,
+surf_longitude STRING,
+oxy_wi_well STRING,
+test_facility STRING,
+max_depth_tmd STRING,
+battery_name STRING,
+spud_date STRING,
+offshore STRING,
+offshore_block STRING,
+offshore_slot_no STRING,
+platform_name STRING,
+global_area STRING,
+curr_well_status STRING,
+curr_well_type STRING
+
+
+
+  )row format delimited fields terminated by "," stored as textfile TBLPROPERTIES("skip.header.line.count"="1");
+
+LOAD DATA INPATH '/user/hdfs/ODS_WELL_NH.csv' INTO TABLE  ods_wells_prep;
+
+DROP TABLE IF EXISTS ods_monthly_vols_prep;
+
+CREATE TABLE ods_monthly_vols_prep(
+  
+  api_no14 STRING,
+prod_inj_date STRING,
+days_prod STRING,
+days_inject STRING,
+oil_prod STRING,
+cond_prod STRING,
+owg_prod STRING,
+gwg_prod STRING,
+supply_water_prod STRING,
+water_prod STRING,
+water_inj STRING,
+gas_inj STRING,
+disp_water_inj STRING,
+cyclic_steam_inj STRING,
+steam_inj STRING
+
+ )row format delimited fields terminated by "," stored as textfile TBLPROPERTIES("skip.header.line.count"="1");
+
+LOAD DATA INPATH '/user/hdfs/ODS_OXY_MONTHLY_VOLUMES_NH.csv' INTO TABLE ods_monthly_vols_prep;
