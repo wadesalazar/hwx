@@ -60,7 +60,10 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("Fetches a response from an OPC UA server based on configured name space and input item names")
 @SeeAlso({})
 @ReadsAttributes({@ReadsAttribute(attribute="", description="")})
-@WritesAttributes({@WritesAttribute(attribute="", description="")})
+@WritesAttributes({@WritesAttribute(attribute="tagname", description="")})
+@WritesAttributes({@WritesAttribute(attribute="timestamp", description="")})
+@WritesAttributes({@WritesAttribute(attribute="value", description="")})
+@WritesAttributes({@WritesAttribute(attribute="meta", description="")})
 public class OPCUAProcessor extends AbstractProcessor {
 	
 	// Create Client
@@ -68,10 +71,8 @@ public class OPCUAProcessor extends AbstractProcessor {
 	EndpointDescription[] endpoints = null;
 	SessionChannel mySession = null;
 	ReadResponse res = null;
-	//used for testing
-	String url = "opc.tcp://192.168.189.10:49320/";
 
-    public static final PropertyDescriptor ENDPOINT = new PropertyDescriptor
+	public static final PropertyDescriptor ENDPOINT = new PropertyDescriptor
             .Builder().name("Endpoint URL")
             .description("the opc.tcp address of the opc ua server")
             .required(true)
@@ -160,16 +161,7 @@ public class OPCUAProcessor extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
     	
-    	try {
-			endpoints = myClient.discoverEndpoints(url);	
-			endpoints = selectByProtocol(endpoints, "opc.tcp");
-			endpoints = selectBySecurityPolicy(endpoints,SecurityPolicy.NONE);
-			mySession = myClient.createSessionChannel(endpoints[0]);
-			mySession.activate();
-		} catch (ServiceResultException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+    	
 		
     }
 
@@ -224,6 +216,19 @@ public class OPCUAProcessor extends AbstractProcessor {
 		req.setRequestHeader(null);
 		req.setNodesToRead(NodesToRead);
 
+		//create opc session
+		//this needs to be maintained by a service ulitmately with connection reference passed in the processor instance
+		try {
+			endpoints = myClient.discoverEndpoints(url);	
+			endpoints = selectByProtocol(endpoints, "opc.tcp");
+			endpoints = selectBySecurityPolicy(endpoints,SecurityPolicy.NONE);
+			mySession = myClient.createSessionChannel(endpoints[0]);
+			mySession.activate();
+		} catch (ServiceResultException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		//make OPC request and save response
 		try{
         	res = mySession.Read(req);
